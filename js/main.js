@@ -1,201 +1,92 @@
-const canvas = document.querySelector('canvas');
-const gl = canvas.getContext('webgl2');
-const fixedWidth = 800;
-
-const loadImage = (src) => new Promise((done) => {
-	const img = document.createElement('img');
-	img.onload = () => done(img);
-	img.src = src;
-});
-
-gl.viewport(0, 0, canvas.width, canvas.height);
-gl.clearColor(0, 0, 0, 1);
-gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-
-const compileShader = (src, type) => {
-	const shader = gl.createShader(type);
-	gl.shaderSource(shader, src.trim());
-	gl.compileShader(shader);
-	const info = gl.getShaderInfoLog(shader);
-	if (info) throw new Error(info);
-	return shader;
-};
-
-const loadShader = async (name, type) => {
-	const url = `shaders/${name}.glsl`;
-	const res = await fetch(url);
-	const src = await res.text();
-	return compileShader(src, type);
-};
-
-const createProgram = (vertex, fragment) => {
-	const program = gl.createProgram();
-	gl.attachShader(program, vertex);
-	gl.attachShader(program, fragment);
-	gl.linkProgram(program);
-	gl.useProgram(program);
-	return program;
-};
-
-let texture;
-const createTexture = (img) => {
-	texture = gl.createTexture();
-	gl.bindTexture(gl.TEXTURE_2D, texture);
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-	gl.generateMipmap(gl.TEXTURE_2D);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL, 0);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LOD, 2);
-};
-
-const updateTexture = (img) => {
-	if (texture === undefined) {
-		createTexture(img);
-	} else {
-		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-		gl.generateMipmap(gl.TEXTURE_2D);
-	}
-};
-
-const createVertexArray = () => {
-	const attrArray = new Float32Array([
-		-1, -1,
-		-1, +1,
-		+1, +1,
-		+1, -1,
-	]);
-
-	const element = new Uint8Array([
-		0, 1, 3,
-		3, 1, 2,
-	]);
-
-	const vertexArray = gl.createVertexArray();
-	gl.bindVertexArray(vertexArray);
-	
-	const attrBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, attrBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, attrArray, gl.STATIC_DRAW);
-	gl.vertexAttribPointer(0, 2, gl.FLOAT, false, attrArray.BYTES_PER_ELEMENT*2, 0);
-	gl.enableVertexAttribArray(0);
-	
-	const elementBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elementBuffer);
-	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, element, gl.STATIC_DRAW);
-};
-
-const renderFrame = () => {
-	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-	gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0);
-};
-
-let program;
-const locations = {};
-const setUniforms = (object) => {
-	for (let key in object) {
-		const value = object[key];
-		const location = (
-			(locations[key]) ??
-			(locations[key] = gl.getUniformLocation(program, key))
-		);
-		gl.uniform1f(location, value);
-	}
-};
-
-const defaultUniforms = {
-	screen_ratio: canvas.width/canvas.height,
-	rotate: 0,
-	squeeze: 0,
-	translate_x: 0,
-	translate_y: 0,
-	scale: 1,
-};
-
-const main = async () => {
-	const vertex = await loadShader('vertex', gl.VERTEX_SHADER);
-	const fragment = await loadShader('fragment', gl.FRAGMENT_SHADER);
-	program = createProgram(vertex, fragment);
-	createVertexArray();
-	setUniforms(defaultUniforms);
-	renderFrame();
-};
-
-main().catch(console.error);
+import * as WebglRenderer from './webgl-renderer.js';
 
 const fieldSample = document.querySelector('div.field');
 fieldSample.remove();
 fieldSample.removeAttribute('style');
 
 const fields = [
-	{ uniform: 'rotate', label: 'Rotate', min: -180, max: 180, step: 0.1 },
-	{ uniform: 'squeeze', label: 'Squeeze', min: 0, max: 1, step: 0.01 },
-	{ uniform: 'translate_x', label: 'Translate X', min: -1, max: 1, step: 0.01 },
-	{ uniform: 'translate_y', label: 'Translate Y', min: -1, max: 1, step: 0.01 },
-	{ uniform: 'scale', label: 'Zoom', min: 1, max: 100, ini: 1, step: 0.5 },
+	{ container: 'transform', uniform: 'rotate', label: 'Rotate', min: -180, max: 18, ini: 0 },
+	{ container: 'transform', uniform: 'squeeze', label: 'Squeeze', min: 0, max: 1, ini: 0 },
+	{ container: 'transform', uniform: 'translate_x', label: 'Translate X', min: -1, max: 1, ini: 0 },
+	{ container: 'transform', uniform: 'translate_y', label: 'Translate Y', min: -1, max: 1, ini: 0 },
+	{ container: 'transform', uniform: 'scale', label: 'Zoom', min: 1, max: 30, ini: 1 },
+	{ container: 'camera', uniform: 'camera_height', label: 'Height (meters)', min: 0, max: 1e5, ini: 10e3 },
+	{ container: 'camera', uniform: 'sensor_width', label: 'Sensor width (mm)', min: 1, max: 100, ini: 36 },
+	{ container: 'camera', uniform: 'focal_length', label: 'Focal length (mm)', min: 1, max: 1000, ini: 50 },
+	{ container: 'camera', uniform: 'dip', label: 'Dip angle', min: -90, max: 90, ini: 0 },
+	{ container: 'camera', uniform: 'roll', label: 'Rotation', min: -90, max: 90, ini: 0 },
+	{ container: 'compare', uniform: 'prediction_opacity', label: 'Opacity', min: 0, max: 1, ini: 0 },
+	{ container: 'compare', uniform: 'slider_offset', label: 'Slidder', min: -1, max: 1, ini: -1 },
 ];
 
-const mainDiv = document.querySelector('.main');
-for (const field of fields) {
+const addField = (field) => {
+	const selector = `.fields-container.${field.container} .content`;
+	const target = document.querySelector(selector);
 	const div = fieldSample.cloneNode(true);
 	div.querySelector('.label').innerText = field.label;
-	mainDiv.appendChild(div);
+	target.appendChild(div);
 	const input = div.querySelector('input[type=number]');
 	const range = div.querySelector('input[type=range]');
-	input.value = field.ini ?? 0;
-	range.value = field.ini ?? 0;
+	const ini = field.ini;
 	const update = function() {
 		const val = this.value*1;
 		input.value = val;
 		range.value = val;
-		setUniforms({ [field.uniform]: val });
-		renderFrame();
+		WebglRenderer.setUniform({ [field.uniform]: val });
+		WebglRenderer.renderFrame();
 	};
 	for (const e of [ input, range ]) {
 		e.oninput = update;
 		e.setAttribute('max', field.max);
 		e.setAttribute('min', field.min);
-		e.setAttribute('step', field.step);
+		e.setAttribute('step', 0.01);
+		e.value = ini;
 	}
-}
-
-const resizeCanvas = (width, height) => {
-	canvas.width = width;
-	canvas.height = height;
-	gl.viewport(0, 0, width, height);
-	setUniforms({ screen_ratio: width/height });
+	WebglRenderer.setUniform({ [field.uniform]: ini });
 };
 
-const applyImageDimentions = (img) => {
-	const width = img.width;
-	const height = img.height;
-	const ratio = width/height;
-	const screen_width = fixedWidth;
-	const screen_height = Math.round(fixedWidth/ratio);
-	resizeCanvas(screen_width, screen_height);
+const bindInputFile = () => {
+	const inputFile = document.querySelector('input[type=file]');
+	inputFile.onchange = () => {
+		const files = inputFile.files;
+		if (files?.length) {
+			const reader = new FileReader();
+			reader.onload = function () {
+				const img = document.createElement('img');
+				img.onload = () => {
+					WebglRenderer.updateImage(img);
+					WebglRenderer.updateRender();
+				};
+				img.src = reader.result;
+			}
+			reader.readAsDataURL(files[0]);
+			inputFile.value = '';
+		};
+	};
 };
 
-const updateImage = (img) => {
-	applyImageDimentions(img);
-	updateTexture(img);
-	renderFrame();
+const bindToggleButton = () => {
+	document.body.onclick = e => {
+		const target = e.target;
+		if (!target.matches('.toggle')) {
+			return;
+		}
+		let container = target;
+		while (container && !container.matches('.fields-container')) {
+			container = container.parentElement;
+		}
+		let classes = container.getAttribute('class').trim().split(/\s+/);
+		if (classes.includes('closed')) {
+			classes = classes.filter(cls => cls !== 'closed');
+		} else {
+			classes.push('closed');
+		}
+		container.setAttribute('class', classes.join(' '));
+	};
 };
 
-const inputFile = document.querySelector('input[type=file]');
-inputFile.onchange = () => {
-	const files = inputFile.files;
-    if (files?.length) {
-        const reader = new FileReader();
-        reader.onload = function () {
-			const img = document.createElement('img');
-			img.onload = () => {
-				updateImage(img);
-				renderFrame();
-			};
-			img.src = reader.result;
-        }
-        reader.readAsDataURL(files[0]);
-		files.length = 0;
-    }
-};
+bindInputFile();
+bindToggleButton();
+WebglRenderer.init().then(() => {
+	fields.forEach(addField);
+});

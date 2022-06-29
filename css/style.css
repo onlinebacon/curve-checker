@@ -13,17 +13,21 @@ div.main {
 	box-shadow: -5px 5px 10px #ccc;
 }
 input[type=range] {
-	width: 580px;
+	width: 745px;
 }
 input[type=number] {
-	width: 100px;
+	width: 85px;
+	font-family: monospace;
+	font-size: 12px;
 }
 div.label {
 	display: inline-block;
-	width: 100px;
+	width: 125px;
+	font-size: 12px;
 }
 div.field {
-	margin-top: 10px;
+	margin-top: 5px;
+	margin-bottom: 5px;
 }
 div.input-file-container {
 	border: 1px solid #ccc;
@@ -35,4 +39,43 @@ div.title {
 	text-align: center;
 	margin-bottom: 10px;
 	text-shadow: -2px 2px 4px #ccc;
+}
+div.fields-container {
+	margin-top: 10px;
+	border: 1px solid #bbb;
+	border-radius: 3px;
+}
+div.fields-container .content {
+	background-color: #fff;
+	padding: 5px 10px 5px 10px;
+}
+div.fields-container .container-header {
+	height: 25px;
+}
+div.fields-container .container-header .container-title,
+div.container-header .toggle {
+	display: inline-block;
+	vertical-align: top;
+}
+div.fields-container .container-header .container-title {
+	margin-top: 5px;
+	margin-left: 0px;
+}
+div.container-header .toggle {
+	width: 10px;
+	height: 10px;
+	background-color: #444;
+	margin-top: 8px;
+	margin-left: 8px;
+	border-radius: 50%;
+	cursor: pointer;
+}
+div.fields-container.closed .container-header .toggle {
+	background-color: #aaa;
+}
+div.fields-container.closed .content {
+	display: none;
+}
+canvas {
+	background-color: #000;
 }
