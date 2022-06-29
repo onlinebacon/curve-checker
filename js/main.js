@@ -5,12 +5,12 @@ fieldSample.remove();
 fieldSample.removeAttribute('style');
 
 const fields = [
-	{ container: 'transform', uniform: 'rotate', label: 'Rotate', min: -180, max: 18, ini: 0 },
+	{ container: 'transform', uniform: 'rotate', label: 'Rotate', min: -180, max: 180, ini: 0 },
 	{ container: 'transform', uniform: 'squeeze', label: 'Squeeze', min: 0, max: 1, ini: 0 },
 	{ container: 'transform', uniform: 'translate_x', label: 'Translate X', min: -1, max: 1, ini: 0 },
 	{ container: 'transform', uniform: 'translate_y', label: 'Translate Y', min: -1, max: 1, ini: 0 },
 	{ container: 'transform', uniform: 'scale', label: 'Zoom', min: 1, max: 30, ini: 1 },
-	{ container: 'camera', uniform: 'camera_height', label: 'Height (meters)', min: 0, max: 1e5, ini: 10e3 },
+	{ container: 'camera', uniform: 'camera_height', label: 'Height (meters)', min: 0, max: 1e6, ini: 10e3 },
 	{ container: 'camera', uniform: 'sensor_width', label: 'Sensor width (mm)', min: 1, max: 100, ini: 36 },
 	{ container: 'camera', uniform: 'focal_length', label: 'Focal length (mm)', min: 1, max: 1000, ini: 50 },
 	{ container: 'camera', uniform: 'dip', label: 'Dip angle', min: -90, max: 90, ini: 0 },
