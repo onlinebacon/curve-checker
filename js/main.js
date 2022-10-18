@@ -28,20 +28,25 @@ const addField = (field) => {
 	const input = div.querySelector('input[type=number]');
 	const range = div.querySelector('input[type=range]');
 	const ini = field.ini;
-	const update = function() {
-		const val = this.value*1;
-		input.value = val;
+	const update = function(e, updateInput) {
+		const val = e.value*1;
+		if (updateInput) input.value = val;
 		range.value = val;
 		WebglRenderer.setUniform({ [field.uniform]: val });
 		WebglRenderer.renderFrame();
 	};
 	for (const e of [ input, range ]) {
-		e.oninput = update;
 		e.setAttribute('max', field.max);
 		e.setAttribute('min', field.min);
 		e.setAttribute('step', 0.01);
 		e.value = ini;
 	}
+	range.oninput = input.onchange = function() {
+		update(this, true);
+	};
+	input.oninput = () => function() {
+		update(this, false);
+	};
 	WebglRenderer.setUniform({ [field.uniform]: ini });
 };
 
